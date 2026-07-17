@@ -1,0 +1,722 @@
+{
+  "info": {
+    "name": "XPayr Gateway API v1 - Merchant Reference",
+    "description": "# XPayr Merchant API v1\n\nOfficial test-key-first workspace for payment sessions, merchant data, networks, and webhooks.\n\n## Base URL\n`{{base_url}}`\n\n## Authentication\nProtected endpoints require `Authorization: Bearer {{bearer_token}}`. Store credentials only in your private Postman environment.\n\n## Key format\n- Test: `sk_test_...`\n- Live: `sk_live_...`\n\n## Safety\nBegin with a test key and a testnet network. Treat API responses and verified webhooks as canonical application state; never infer payment completion from a browser callback alone.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": {
+      "major": 1,
+      "minor": 1,
+      "patch": 0,
+      "identifier": "merchant-docs"
+    }
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01. Health",
+      "description": "API sağlık kontrolü. Auth gerektirmez.",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Servisin ayakta olup olmadığını kontrol eder.",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/health",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\",\n  \"version\": \"1.0.0\",\n  \"timestamp\": \"2026-02-12T12:00:00+00:00\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. Payments",
+      "description": "Payment session yönetimi: oluşturma, listeleme, detay, tamamlama.",
+      "item": [
+        {
+          "name": "POST /payments (Create Session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Yeni payment session oluşturur.\n\nRequired: `amount`, `currency`, `network`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9.99,\n  \"currency\": \"USDC\",\n  \"network\": \"bsc-testnet\",\n  \"metadata\": {\n    \"order_id\": \"ORDER-1001\",\n    \"customer_id\": \"cus_1001\",\n    \"note\": \"Gateway doc test\"\n  },\n  \"success_url\": \"https://example.com/success\",\n  \"cancel_url\": \"https://example.com/cancel\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.environment.set('payment_id', json.id);",
+                  "if (json && json.payment_url) pm.environment.set('payment_url', json.payment_url);",
+                  "if (json && json.id) console.log('payment_id set:', json.id);"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearer_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 9.99,\n  \"currency\": \"USDC\",\n  \"network\": \"bsc-testnet\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/payments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"ps_xxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"object\": \"payment_session\",\n  \"amount\": \"9.99\",\n  \"currency\": \"USDC\",\n  \"network\": \"bsc-testnet\",\n  \"status\": \"pending\",\n  \"payment_url\": \"https://xpayr.com/pay/ps_xxxxx\",\n  \"metadata\": {\n    \"order_id\": \"ORDER-1001\"\n  },\n  \"expires_at\": \"2026-02-12T12:30:00+00:00\",\n  \"created_at\": \"2026-02-12T12:00:00+00:00\",\n  \"livemode\": false\n}"
+            },
+            {
+              "name": "400 Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearer_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 0,\n  \"currency\": \"USDC\",\n  \"network\": \"bsc-testnet\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/payments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"code\": \"validation_error\",\n    \"message\": \"Amount must be greater than 0\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /payments (List Sessions)",
+          "request": {
+            "method": "GET",
+            "description": "Pagination + opsiyonel filtreler (`status`, `network`).",
+            "url": {
+              "raw": "{{base_url}}/payments?page={{page}}&limit={{limit}}&status={{status_filter}}&network={{network_filter}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "status",
+                  "value": "{{status_filter}}",
+                  "disabled": true
+                },
+                {
+                  "key": "network",
+                  "value": "{{network_filter}}",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/payments?page=1&limit=25",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "25"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"ps_xxx\",\n      \"object\": \"payment_session\",\n      \"amount\": \"9.99\",\n      \"currency\": \"USDC\",\n      \"network\": \"bsc-testnet\",\n      \"status\": \"pending\",\n      \"expires_at\": \"2026-02-12T12:30:00+00:00\",\n      \"created_at\": \"2026-02-12T12:00:00+00:00\",\n      \"livemode\": false\n    }\n  ],\n  \"has_more\": false,\n  \"total_count\": 1,\n  \"page\": 1,\n  \"limit\": 25\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /payments/{id} (Session Details)",
+          "request": {
+            "method": "GET",
+            "description": "Tek bir payment session detayını döner.\n\n`payment_id` env değişkeni kullanılabilir.",
+            "url": {
+              "raw": "{{base_url}}/payments/{{payment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments",
+                "{{payment_id}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (with transaction)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/payments/{{payment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "{{payment_id}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"ps_xxx\",\n  \"object\": \"payment_session\",\n  \"amount\": \"9.99\",\n  \"currency\": \"USDC\",\n  \"network\": \"bsc-testnet\",\n  \"status\": \"completed\",\n  \"metadata\": {\n    \"order_id\": \"ORDER-1001\"\n  },\n  \"expires_at\": \"2026-02-12T12:30:00+00:00\",\n  \"created_at\": \"2026-02-12T12:00:00+00:00\",\n  \"livemode\": false,\n  \"transaction\": {\n    \"tx_hash\": \"0xabc...\",\n    \"from_address\": \"0xdef...\",\n    \"amount_paid\": \"9.99\",\n    \"platform_fee\": \"0.0999\",\n    \"merchant_received\": \"9.8901\",\n    \"confirmations\": 1,\n    \"status\": \"confirmed\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/payments/ps_invalid",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "ps_invalid"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"code\": \"not_found\",\n    \"message\": \"Payment session not found\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /payments/{id}/complete (Public)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Checkout tarafından on-chain tamamlamadan sonra çağrılır.\n\nNot: mevcut implementasyonda public endpoint.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tx_hash\": \"0x1111111111111111111111111111111111111111111111111111111111111111\",\n  \"from_address\": \"0x2222222222222222222222222222222222222222\",\n  \"confirmations\": 1,\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/{{payment_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments",
+                "{{payment_id}}",
+                "complete"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tx_hash\": \"0x111...\",\n  \"from_address\": \"0x222...\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/payments/{{payment_id}}/complete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "{{payment_id}}",
+                    "complete"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Payment completed successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Merchant (Me)",
+      "description": "Merchant profil, bakiye, key rotation endpointleri.",
+      "item": [
+        {
+          "name": "GET /me",
+          "request": {
+            "method": "GET",
+            "description": "Merchant profil bilgisini döner.",
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /me/balance",
+          "request": {
+            "method": "GET",
+            "description": "Confirmed transactionlara göre merchant balance özetini currency/network kırılımında döner.",
+            "url": {
+              "raw": "{{base_url}}/me/balance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "balance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /me/keys/regenerate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Test veya live key setini rotate eder.\n\nBody: `{ \"mode\": \"test\" | \"live\" }`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"test\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/me/keys/regenerate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "keys",
+                "regenerate"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearer_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mode\": \"test\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/me/keys/regenerate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "keys",
+                    "regenerate"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"object\": \"api_keys\",\n  \"mode\": \"test\",\n  \"public_key\": \"pk_test_xxx\",\n  \"secret_key\": \"sk_test_xxx\",\n  \"warning\": \"Store the secret key securely. It will not be shown again.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. Webhooks",
+      "description": "Webhook konfigürasyon ve test akışı.",
+      "item": [
+        {
+          "name": "GET /webhooks",
+          "request": {
+            "method": "GET",
+            "description": "Mevcut webhook URL/secret mask ve event listesini döner.",
+            "url": {
+              "raw": "{{base_url}}/webhooks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /webhooks (Set URL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Webhook URL atar ve secret üretir.\nURL `https://` olmalı.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"{{webhook_url}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /webhooks/test",
+          "request": {
+            "method": "POST",
+            "description": "Test webhook event'i yollar.",
+            "url": {
+              "raw": "{{base_url}}/webhooks/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /webhooks",
+          "request": {
+            "method": "DELETE",
+            "description": "Webhook ayarlarını siler.",
+            "url": {
+              "raw": "{{base_url}}/webhooks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Error Scenarios",
+      "description": "Sık hata durumlarını hızlıca test etmek için hazır istekler.",
+      "item": [
+        {
+          "name": "Auth Missing Header",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Authorization header olmadan /me çağrısı -> 401.",
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth Invalid Format",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "description": "Bearer yerine yanlış auth formatı -> 401 invalid_auth_format.",
+            "url": {
+              "raw": "{{base_url}}/payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payment Create Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Required field eksik -> 400 validation_error.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currency\": \"USDC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const url = pm.request.url ? pm.request.url.toString() : '';",
+          "const isHealth = /\\/health(\\?|$)/.test(url);",
+          "const isPublicComplete = /\\/payments\\/.+\\/complete(\\?|$)/.test(url);",
+          "if (!isHealth && !isPublicComplete) {",
+          "  const token = pm.environment.get('bearer_token') || pm.collectionVariables.get('bearer_token');",
+          "  if (!token) {",
+          "    console.warn('bearer_token is empty. Protected endpoints will return 401.');",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://xpayr.com/api/v1"
+    },
+    {
+      "key": "bearer_token",
+      "value": ""
+    },
+    {
+      "key": "payment_id",
+      "value": ""
+    },
+    {
+      "key": "payment_url",
+      "value": ""
+    },
+    {
+      "key": "webhook_url",
+      "value": "https://webhook.site/your-uuid"
+    },
+    {
+      "key": "page",
+      "value": "1"
+    },
+    {
+      "key": "limit",
+      "value": "25"
+    },
+    {
+      "key": "status_filter",
+      "value": ""
+    },
+    {
+      "key": "network_filter",
+      "value": ""
+    }
+  ]
+}
