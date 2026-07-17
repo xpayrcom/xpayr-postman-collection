@@ -18,8 +18,8 @@ jobs:
     timeout-minutes: 10
     environment: testnet-smoke
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -42,7 +42,7 @@ jobs:
           arc-agent-test-private-key: ${{ secrets.XPAYR_ARC_AGENT_TEST_PRIVATE_KEY }}
           evidence-path: ${{ runner.temp }}/xpayr-postman-lifecycle.json
           payment-url: ${{ steps.session.outputs.payment_url }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: xpayr-postman-testnet-smoke
           path: |
