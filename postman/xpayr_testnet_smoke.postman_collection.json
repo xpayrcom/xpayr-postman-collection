@@ -1,0 +1,101 @@
+{
+  "info": {
+    "name": "XPayr Testnet CI Smoke",
+    "description": "Safe authenticated smoke path: health, network catalog, testnet session creation, and session retrieval. No key rotation, webhook mutation, completion callback, or mainnet operation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://xpayr.com/api/v1" },
+    { "key": "bearer_token", "value": "" },
+    { "key": "payment_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Health returns 200', () => pm.response.to.have.status(200));"
+        ] }
+      }]
+    },
+    {
+      "name": "Arc Testnet network catalog",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{bearer_token}}", "type": "string" }] },
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/me/networks", "host": ["{{base_url}}"], "path": ["me", "networks"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Catalog returns 200', () => pm.response.to.have.status(200));",
+          "const body = pm.response.json();",
+          "pm.test('Test mode is enforced', () => pm.expect(body.livemode).to.eql(false));",
+          "const arc = body.data.find((network) => network.network_key === 'arc-testnet');",
+          "pm.test('Arc Testnet USDC is available', () => {",
+          "  pm.expect(arc.chain_id).to.eql(5042002);",
+          "  pm.expect(arc.currencies.some((currency) => currency.symbol === 'USDC')).to.eql(true);",
+          "});"
+        ] }
+      }]
+    },
+    {
+      "name": "Create Arc Testnet USDC session",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{bearer_token}}", "type": "string" }] },
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": \"0.000100\",\n  \"currency\": \"USDC\",\n  \"network\": \"arc-testnet\",\n  \"order_id\": \"POSTMAN-CI-{{$timestamp}}\",\n  \"description\": \"Postman CI testnet smoke\",\n  \"metadata\": {\n    \"source\": \"github-actions\",\n    \"purpose\": \"postman-testnet-smoke\"\n  }\n}"
+        },
+        "url": { "raw": "{{base_url}}/payments", "host": ["{{base_url}}"], "path": ["payments"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Session is created', () => pm.response.to.have.status(201));",
+          "const body = pm.response.json();",
+          "pm.test('Session is pending Arc Testnet USDC', () => {",
+          "  pm.expect(body.id).to.match(/^ps_[a-z0-9]+$/);",
+          "  pm.expect(body.network).to.eql('arc-testnet');",
+          "  pm.expect(body.currency).to.eql('USDC');",
+          "  pm.expect(body.status).to.eql('pending');",
+          "  pm.expect(body.livemode).to.eql(false);",
+          "});",
+          "pm.collectionVariables.set('payment_id', body.id);"
+        ] }
+      }]
+    },
+    {
+      "name": "Read created session",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{bearer_token}}", "type": "string" }] },
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/payments/{{payment_id}}", "host": ["{{base_url}}"], "path": ["payments", "{{payment_id}}"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Session read returns 200', () => pm.response.to.have.status(200));",
+          "const body = pm.response.json();",
+          "pm.test('Returned session matches the created ID', () => {",
+          "  pm.expect(body.id).to.eql(pm.collectionVariables.get('payment_id'));",
+          "  pm.expect(body.status).to.eql('pending');",
+          "});"
+        ] }
+      }]
+    }
+  ]
+}

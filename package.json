@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node scripts/validate.mjs"
+    "test": "node scripts/validate.mjs",
+    "smoke:testnet": "node scripts/run-testnet-smoke.mjs"
   },
   "engines": { "node": ">=18" }
 }

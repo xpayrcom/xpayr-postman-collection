@@ -3,19 +3,25 @@ import { readFile } from "node:fs/promises";
 
 const collectionPath = new URL("../postman/xpayr_gateway_v1.postman_collection.json", import.meta.url);
 const environmentPath = new URL("../postman/xpayr_gateway_v1.postman_environment.json", import.meta.url);
+const smokePath = new URL("../postman/xpayr_testnet_smoke.postman_collection.json", import.meta.url);
 const collectionText = await readFile(collectionPath, "utf8");
 const environmentText = await readFile(environmentPath, "utf8");
+const smokeText = await readFile(smokePath, "utf8");
 const collection = JSON.parse(collectionText);
 const environment = JSON.parse(environmentText);
+const smoke = JSON.parse(smokeText);
 
 assert.equal(collection.info?.schema, "https://schema.getpostman.com/json/collection/v2.1.0/collection.json");
 assert.ok(Array.isArray(collection.item) && collection.item.length > 0, "Collection must contain requests");
+assert.equal(smoke.info?.schema, "https://schema.getpostman.com/json/collection/v2.1.0/collection.json");
+assert.equal(smoke.item?.length, 4, "Smoke collection must contain exactly four safe requests");
+assert.equal(smoke.item.some((item) => /complete|regenerate|webhook/i.test(item.request?.url?.raw || "")), false, "Smoke collection contains a mutating operational endpoint");
 
 const values = Object.fromEntries(environment.values.map(({ key, value }) => [key, value]));
 assert.equal(values.base_url, "https://xpayr.com/api/v1");
 assert.equal(values.bearer_token, "", "Published environment must not contain an API key");
 
-const combined = `${collectionText}\n${environmentText}`;
+const combined = `${collectionText}\n${environmentText}\n${smokeText}`;
 assert.equal(combined.includes("3web3.shop"), false, "Legacy host is forbidden");
 assert.equal(/\b(?:sk|ag)_(?:test|live)_[A-Za-z0-9_-]{12,}\b/.test(combined), false, "Credential-like value detected");
 const hex64Values = combined.match(/\b(?:0x)?[a-fA-F0-9]{64}\b/g) ?? [];
@@ -24,4 +30,4 @@ assert.ok(
   "Unexpected 32-byte value detected; only the documented all-ones transaction-hash placeholder is allowed",
 );
 
-console.log(`Postman assets OK (${collection.item.length} top-level groups)`);
+console.log(`Postman assets OK (${collection.item.length} reference groups, ${smoke.item.length} smoke requests)`);

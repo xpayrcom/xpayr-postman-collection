@@ -1,0 +1,30 @@
+name: Postman Testnet smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 3 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xpayr-postman-testnet-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: testnet-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run smoke:testnet
+        env:
+          XPAYR_TEST_SECRET_KEY: ${{ secrets.XPAYR_TEST_SECRET_KEY }}
