@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 const collection = JSON.parse(await readFile(
   new URL("../postman/xpayr_testnet_smoke.postman_collection.json", import.meta.url),
@@ -7,6 +8,7 @@ const collection = JSON.parse(await readFile(
 ));
 const baseUrl = String(process.env.XPAYR_BASE_URL || "https://xpayr.com/api/v1").replace(/\/+$/, "");
 const bearerToken = String(process.env.XPAYR_TEST_SECRET_KEY || "");
+const outputPath = String(process.env.XPAYR_SMOKE_OUTPUT || "artifacts/testnet-smoke.json");
 assert.match(baseUrl, /^https:\/\//, "XPAYR_BASE_URL must use HTTPS");
 assert.match(bearerToken, /^sk_test_[A-Za-z0-9_-]{32,}$/, "XPAYR_TEST_SECRET_KEY must be a test key");
 
@@ -22,6 +24,7 @@ const variables = {
   base_url: baseUrl,
   bearer_token: bearerToken,
   payment_id: "",
+  payment_url: "",
 };
 const render = (value) => String(value)
   .replace(/\{\{\$timestamp\}\}/g, String(Math.floor(Date.now() / 1000)))
@@ -70,17 +73,24 @@ for (const item of collection.item) {
     assert.equal(payload.currency, "USDC");
     assert.equal(payload.status, "pending");
     assert.equal(payload.livemode, false);
+    assert.match(payload.payment_url || "", /^https:\/\/xpayr\.com\/(?:pay|test|test-pay)\/ps_[a-z0-9]+$/);
     variables.payment_id = payload.id;
+    variables.payment_url = payload.payment_url;
   } else if (item.name === "Read created session") {
     assert.equal(payload?.id, variables.payment_id);
     assert.equal(payload?.status, "pending");
   }
 }
 
-console.log(JSON.stringify({
+const evidence = {
   ok: true,
+  checked_at: new Date().toISOString(),
   collection: collection.info.name,
   requests: collection.item.length,
   session_id: variables.payment_id,
+  payment_url: variables.payment_url,
   live_funds_moved: false,
-}));
+};
+await mkdir(dirname(outputPath), { recursive: true });
+await writeFile(outputPath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
+console.log(JSON.stringify(evidence));

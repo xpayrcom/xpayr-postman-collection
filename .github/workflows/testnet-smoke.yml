@@ -28,3 +28,24 @@ jobs:
       - run: npm run smoke:testnet
         env:
           XPAYR_TEST_SECRET_KEY: ${{ secrets.XPAYR_TEST_SECRET_KEY }}
+          XPAYR_SMOKE_OUTPUT: ${{ runner.temp }}/xpayr-postman-smoke.json
+      - name: Read the validated Testnet payment URL
+        id: session
+        env:
+          SMOKE_PATH: ${{ runner.temp }}/xpayr-postman-smoke.json
+        run: >-
+          node -e 'const fs=require("node:fs");const p=JSON.parse(fs.readFileSync(process.env.SMOKE_PATH,"utf8"));if(!/^https:\/\/xpayr\.com\/(?:pay|test|test-pay)\/ps_[a-z0-9]+$/.test(p.payment_url||""))process.exit(1);fs.appendFileSync(process.env.GITHUB_OUTPUT,`payment_url=${p.payment_url}\n`);'
+      - name: Complete and reconcile the exact collection-created session
+        uses: xpayrcom/xpayr-agent-payments-arc-testnet@ab0206e5628f53c81f755e739e892e1b38e4e01d
+        with:
+          xpayr-test-secret-key: ${{ secrets.XPAYR_TEST_SECRET_KEY }}
+          arc-agent-test-private-key: ${{ secrets.XPAYR_ARC_AGENT_TEST_PRIVATE_KEY }}
+          evidence-path: ${{ runner.temp }}/xpayr-postman-lifecycle.json
+          payment-url: ${{ steps.session.outputs.payment_url }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xpayr-postman-testnet-smoke
+          path: |
+            ${{ runner.temp }}/xpayr-postman-smoke.json
+            ${{ runner.temp }}/xpayr-postman-lifecycle.json
+          retention-days: 14

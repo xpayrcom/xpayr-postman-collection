@@ -57,7 +57,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"amount\": \"0.000100\",\n  \"currency\": \"USDC\",\n  \"network\": \"arc-testnet\",\n  \"order_id\": \"POSTMAN-CI-{{$timestamp}}\",\n  \"description\": \"Postman CI testnet smoke\",\n  \"metadata\": {\n    \"source\": \"github-actions\",\n    \"purpose\": \"postman-testnet-smoke\"\n  }\n}"
+          "raw": "{\n  \"amount\": \"0.001000\",\n  \"currency\": \"USDC\",\n  \"network\": \"arc-testnet\",\n  \"order_id\": \"POSTMAN-CI-{{$timestamp}}\",\n  \"description\": \"Postman CI testnet smoke\",\n  \"metadata\": {\n    \"source\": \"github-actions\",\n    \"purpose\": \"postman-testnet-smoke\"\n  }\n}"
         },
         "url": { "raw": "{{base_url}}/payments", "host": ["{{base_url}}"], "path": ["payments"] }
       },

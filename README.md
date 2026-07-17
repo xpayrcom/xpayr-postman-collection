@@ -32,7 +32,7 @@ Import postman/xpayr_gateway_v1.postman_collection.json and postman/xpayr_gatewa
 
 Published assets intentionally contain no credentials. Run `npm test` after every collection update to validate schema, host, placeholders, and secret hygiene.
 
-`postman/xpayr_testnet_smoke.postman_collection.json` is the restricted CI collection. It runs only health, testnet catalog, session creation, and session retrieval. GitHub Actions supplies the test key through the `testnet-smoke` environment. CI uses the repository's dependency-free allowlist runner instead of executing arbitrary Postman scripts, and it creates no artifact containing resolved request headers.
+`postman/xpayr_testnet_smoke.postman_collection.json` is the restricted CI collection. It runs only health, testnet catalog, session creation, and session retrieval. GitHub Actions supplies credentials through the protected `testnet-smoke` environment. CI uses the repository's dependency-free allowlist runner instead of executing arbitrary Postman scripts, then passes the exact `0.001000 USDC` Testnet session to a full-commit-pinned XPayr lifecycle action. That action completes the on-chain split and verifies reconciliation; Mainnet is hard-disabled, and uploaded evidence contains no credentials or resolved request headers.
 
 Use an XPayr test key before live credentials. Never expose `sk_test_*`, `sk_live_*`, agent keys, webhook secrets, or wallet private keys in browser code or commits.
 
